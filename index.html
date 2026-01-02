@@ -38,7 +38,8 @@
         
         #screenshot-view { display: none; background: #2c3e50; color: white; padding: 15px; border-radius: 12px; min-height: 90vh; }
         .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; font-size: 13px; }
+        .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; font-size: 13px; line-height: 1.4; }
+        .report-item strong { font-size: 16px; color: #ff9800; }
         .compact-list { width: 100%; border-collapse: collapse; font-size: 13px; }
         .compact-list td { padding: 6px 4px; border-bottom: 1px solid #444; }
     </style>
@@ -54,8 +55,7 @@
 <div id="tracker-view">
     <div id="player-list"></div>
     <div style="text-align: center; padding: 30px 10px;">
-        <button style="background:#ff5252; color:white; padding:12px 20px; border-radius:8px; font-weight:bold;" onclick="confirmReset()">Clear Game (Reset Stats)</button>
-        <p style="font-size: 11px; color: #888; margin-top: 10px;">Current roster is saved automatically.</p>
+        <button style="background:#ff5252; color:white; padding:12px 20px; border-radius:8px; font-weight:bold; border:none;" onclick="confirmReset()">Clear Game (Reset Stats)</button>
     </div>
 </div>
 
@@ -82,7 +82,6 @@
         }));
     }
 
-    // ROBUST LOADING LOGIC
     let players = [];
     try {
         const saved = JSON.parse(localStorage.getItem('bball_stats'));
@@ -114,7 +113,7 @@
             header.classList.remove('subtract-active');
             document.body.classList.remove('subtract-active');
         }
-        render(); // Refresh labels
+        render();
     }
 
     function addShot(index, type, isMake) {
@@ -177,7 +176,7 @@
     }
 
     function confirmReset() {
-        if(confirm("Are you sure? This resets all scores and fouls to zero.")) {
+        if(confirm("Reset all scores and fouls?")) {
             players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; p.fouls=0; });
             save(); render();
         }
@@ -192,38 +191,55 @@
     }
 
     function renderSummary() {
-        let tPts = 0, tFouls = 0;
+        let tPts = 0, tFouls = 0, tFGM = 0, tFGA = 0, tFTM = 0, tFTA = 0;
         let tableHtml = '';
         const matchup = document.getElementById('matchup-name').value;
         document.getElementById('report-title').innerText = matchup;
         
         players.forEach(p => {
-            const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tPts += pPts; 
+            const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            tPts += pts; 
             tFouls += p.fouls;
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pPts} pts</b> | ${p.fouls} fouls</td></tr>`;
+            tFGM += (p.p2M + p.p3M);
+            tFGA += (p.p2A + p.p3A);
+            tFTM += p.ftM;
+            tFTA += p.ftA;
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts} pts</b> | ${p.fouls} fls</td></tr>`;
         });
+
+        const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
+        const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
+
         document.getElementById('report-content').innerHTML = `
-            <div class="report-item">Team Pts<br><strong>${tPts}</strong></div>
+            <div class="report-item">Total Pts<br><strong>${tPts}</strong></div>
             <div class="report-item">Team Fouls<br><strong>${tFouls}</strong></div>
+            <div class="report-item">FG%<br><strong>${fgPct}%</strong><br>(${tFGM}/${tFGA})</div>
+            <div class="report-item">FT%<br><strong>${ftPct}%</strong><br>(${tFTM}/${tFTA})</div>
         `;
         document.getElementById('player-summary-table').innerHTML = tableHtml;
     }
 
     function copySummary() {
         const matchup = document.getElementById('matchup-name').value;
-        let tPts = 0;
+        let tPts = 0, tFouls = 0, tFGM = 0, tFGA = 0, tFTM = 0, tFTA = 0;
         let pStats = "";
         players.forEach(p => {
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             tPts += pts;
+            tFouls += p.fouls;
+            tFGM += (p.p2M + p.p3M);
+            tFGA += (p.p2A + p.p3A);
+            tFTM += p.ftM;
+            tFTA += p.ftA;
             if(pts > 0 || p.fouls > 0) pStats += `\n- ${p.name}: ${pts}pts, ${p.fouls} fls`;
         });
-        const text = `🏀 ${matchup}\nTotal Pts: ${tPts}${pStats}`;
+        const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
+        const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
+        
+        const text = `🏀 ${matchup}\nTotal Pts: ${tPts}\nFG: ${fgPct}% (${tFGM}/${tFGA})\nFT: ${ftPct}% (${tFTM}/${tFTA})\nTotal Fouls: ${tFouls}${pStats}`;
         navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
     }
 
-    // Initialize
     document.getElementById('matchup-name').value = localStorage.getItem('bball_matchup') || "Grafton vs X";
     render();
 </script>
