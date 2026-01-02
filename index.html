@@ -6,21 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; margin: 0; padding: 10px; padding-bottom: 80px; }
-        .header { background: #ff9800; color: white; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .player-header { display: flex; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
-        .name-input { border: none; font-size: 18px; font-weight: bold; width: 60%; color: #333; outline: none; border-bottom: 1px dashed #ccc; }
-        .name-input:focus { border-bottom: 1px solid #ff9800; }
-        .points-badge { margin-left: auto; background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .shot-box { text-align: center; background: #fafafa; padding: 8px; border-radius: 8px; }
-        .btn-group { display: flex; justify-content: space-around; margin-top: 5px; }
-        button { border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; padding-bottom: 250px; }
+        .header { background: #ff9800; color: white; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 10px; margin: 8px 0; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        .player-header { display: flex; align-items: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
+        .name-input { border: none; font-size: 16px; font-weight: bold; width: 60%; outline: none; background: transparent; }
+        .points-badge { margin-left: auto; font-weight: bold; color: #e65100; background: #fff3e0; padding: 2px 8px; border-radius: 10px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 12px; }
+        .btn-group { display: flex; justify-content: center; gap: 5px; margin-top: 3px; }
+        button { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.1s; }
+        button:active { transform: scale(0.95); }
         .make { background: #4caf50; color: white; }
         .miss { background: #f44336; color: white; }
-        .reset-btn { background: #ffcc80; color: #e65100; }
-        .footer-stats { position: fixed; bottom: 0; left: 0; right: 0; background: #333; color: white; padding: 15px; display: flex; justify-content: space-around; font-size: 14px; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
+        .reset-btn { background: #333; color: white; font-size: 12px; }
+        
+        /* Summary Section */
+        .screenshot-report { background: #2c3e50; color: white; padding: 15px; border-radius: 12px; margin-top: 20px; border: 2px solid #ff9800; }
+        .screenshot-report h2 { margin: 0 0 10px 0; font-size: 18px; text-align: center; border-bottom: 1px solid #555; padding-bottom: 5px; }
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; }
+        .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; }
+        .top-scorer { grid-column: span 2; background: #e67e22; font-weight: bold; }
+        .share-btn { width: 100%; margin-top: 10px; padding: 12px; background: #ff9800; color: white; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -32,23 +39,25 @@
 
 <div id="player-list"></div>
 
-<div class="footer-stats" id="team-summary">
-    </div>
+<div class="screenshot-report" id="final-report">
+    <h2>🏀 GAME SUMMARY</h2>
+    <div class="report-grid" id="report-content"></div>
+    <button class="share-btn" onclick="copySummary()">Copy Summary to Clipboard</button>
+</div>
 
 <script>
-    // 1. Load data or set defaults
+    // Load data from LocalStorage
     let players = JSON.parse(localStorage.getItem('bball_stats')) || 
         Array.from({length: 10}, (_, i) => ({name: `Player ${i+1}`, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
 
-    // 2. Save data function
     function save() {
         localStorage.setItem('bball_stats', JSON.stringify(players));
-        renderSummary();
+        renderReport();
     }
 
     function updateName(index, newName) {
         players[index].name = newName;
-        save(); // Save immediately when name changes
+        save();
     }
 
     function addShot(index, type, isMake) {
@@ -60,25 +69,44 @@
     }
 
     function confirmReset() {
-        if(confirm("Clear all scores? Names will be kept.")) {
+        if(confirm("Clear all scores? Names will stay.")) {
             players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
             save();
             render();
         }
     }
 
-    function renderSummary() {
-        let tPts = 0, tM = 0, tA = 0;
+    function getStats() {
+        let tPts = 0, tM = 0, tA = 0, topS = players[0];
         players.forEach(p => {
-            tPts += (p.ftM + (p.p2M*2) + (p.p3M*3));
+            let pPts = (p.ftM + (p.p2M*2) + (p.p3M*3));
+            tPts += pPts;
             tM += (p.ftM + p.p2M + p.p3M);
             tA += (p.ftA + p.p2A + p.p3A);
+            if (pPts > (topS.ftM + (topS.p2M*2) + (topS.p3M*3))) topS = p;
         });
         const pct = tA === 0 ? 0 : Math.round((tM / tA) * 100);
-        document.getElementById('team-summary').innerHTML = `
-            <span>Team Pts: <b>${tPts}</b></span>
-            <span>Total FG: <b>${tM}/${tA} (${pct}%)</b></span>
+        const topPts = (topS.ftM + (topS.p2M*2) + (topS.p3M*3));
+        return { tPts, tM, tA, pct, topSName: topS.name, topPts };
+    }
+
+    function renderReport() {
+        const s = getStats();
+        document.getElementById('report-content').innerHTML = `
+            <div class="report-item">Points<br><strong>${s.tPts}</strong></div>
+            <div class="report-item">FG%<br><strong>${s.pct}%</strong></div>
+            <div class="report-item">Team Shooting<br><strong>${s.tM}/${s.tA}</strong></div>
+            <div class="report-item">Date<br><strong>${new Date().toLocaleDateString()}</strong></div>
+            <div class="report-item top-scorer">🔥 Top Scorer: ${s.topSName} (${s.topPts} pts)</div>
         `;
+    }
+
+    function copySummary() {
+        const s = getStats();
+        const text = `🏀 Game Summary (${new Date().toLocaleDateString()})\nTotal Points: ${s.tPts}\nTeam Shooting: ${s.tM}/${s.tA} (${s.pct}%)\nTop Scorer: ${s.topSName} (${s.topPts} pts)`;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Summary copied to clipboard!");
+        });
     }
 
     function render() {
@@ -99,12 +127,12 @@
                     </div>
                 </div>`;
         });
-        renderSummary();
+        renderReport();
     }
 
     function shotUI(i, label, m, a, type) {
         return `<div class="shot-box">
-            <small>${label}</small><br><b>${m}/${a}</b>
+            <b>${label}: ${m}/${a}</b>
             <div class="btn-group">
                 <button class="miss" onclick="addShot(${i},'${type}',false)">-</button>
                 <button class="make" onclick="addShot(${i},'${type}',true)">+</button>
@@ -112,12 +140,5 @@
         </div>`;
     }
 
-    // Register Service Worker for Offline Use
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-
-    render();
-</script>
-</body>
-</html>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    render
