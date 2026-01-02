@@ -6,53 +6,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; padding-bottom: 250px; }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; }
         .header { background: #ff9800; color: white; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .card { background: white; padding: 10px; margin: 8px 0; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         .player-header { display: flex; align-items: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
         .name-input { border: none; font-size: 16px; font-weight: bold; width: 60%; outline: none; background: transparent; }
         .points-badge { margin-left: auto; font-weight: bold; color: #e65100; background: #fff3e0; padding: 2px 8px; border-radius: 10px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 12px; }
+        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 11px; }
         .btn-group { display: flex; justify-content: center; gap: 5px; margin-top: 3px; }
-        button { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.1s; }
-        button:active { transform: scale(0.95); }
+        button { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .make { background: #4caf50; color: white; }
         .miss { background: #f44336; color: white; }
-        .reset-btn { background: #333; color: white; font-size: 12px; }
-        
-        /* Summary Section */
-        .screenshot-report { background: #2c3e50; color: white; padding: 15px; border-radius: 12px; margin-top: 20px; border: 2px solid #ff9800; }
-        .screenshot-report h2 { margin: 0 0 10px 0; font-size: 18px; text-align: center; border-bottom: 1px solid #555; padding-bottom: 5px; }
-        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; }
-        .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; }
-        .top-scorer { grid-column: span 2; background: #e67e22; font-weight: bold; }
-        .share-btn { width: 100%; margin-top: 10px; padding: 12px; background: #ff9800; color: white; border-radius: 8px; font-size: 16px; }
+        .reset-btn { background: #333; color: white; font-size: 11px; margin-left: 5px; }
+        .summary-toggle { background: #fff; color: #ff9800; font-size: 11px; }
+
+        /* The Screenshot View */
+        #screenshot-view { display: none; background: #2c3e50; color: white; padding: 20px; border-radius: 12px; min-height: 90vh; }
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .report-item { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; text-align: center; }
+        .compact-list { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .compact-list td { padding: 5px; border-bottom: 1px solid #444; }
+        .compact-list tr:last-child td { border: none; }
+        .share-btn { width: 100%; margin-top: 15px; padding: 12px; background: #ff9800; color: white; border-radius: 8px; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <strong>Shot Tracker</strong>
-    <button class="reset-btn" onclick="confirmReset()">Reset Scores</button>
+    <div>
+        <button class="summary-toggle" id="mode-btn" onclick="toggleView()">View Summary</button>
+        <button class="reset-btn" onclick="confirmReset()">Reset</button>
+    </div>
 </div>
 
-<div id="player-list"></div>
+<div id="tracker-view">
+    <div id="player-list"></div>
+</div>
 
-<div class="screenshot-report" id="final-report">
-    <h2>🏀 GAME SUMMARY</h2>
+<div id="screenshot-view">
+    <h2 style="text-align: center; margin-top: 0;">🏀 GAME REPORT</h2>
     <div class="report-grid" id="report-content"></div>
-    <button class="share-btn" onclick="copySummary()">Copy Summary to Clipboard</button>
+    
+    <table class="compact-list" id="player-summary-table">
+        </table>
+
+    <button class="share-btn" onclick="copySummary()">Copy Text Summary</button>
+    <p style="text-align: center; font-size: 10px; color: #bdc3c7; margin-top: 20px;">
+        Screenshot this screen to save the results.
+    </p>
 </div>
 
 <script>
-    // Load data from LocalStorage
+    let isSummaryMode = false;
     let players = JSON.parse(localStorage.getItem('bball_stats')) || 
         Array.from({length: 10}, (_, i) => ({name: `Player ${i+1}`, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
 
+    function toggleView() {
+        isSummaryMode = !isSummaryMode;
+        document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
+        document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
+        document.getElementById('mode-btn').innerText = isSummaryMode ? 'Back to Game' : 'View Summary';
+        if (isSummaryMode) renderSummaryPage();
+    }
+
     function save() {
         localStorage.setItem('bball_stats', JSON.stringify(players));
-        renderReport();
     }
 
     function updateName(index, newName) {
@@ -73,6 +93,7 @@
             players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
             save();
             render();
+            if(isSummaryMode) renderSummaryPage();
         }
     }
 
@@ -86,27 +107,30 @@
             if (pPts > (topS.ftM + (topS.p2M*2) + (topS.p3M*3))) topS = p;
         });
         const pct = tA === 0 ? 0 : Math.round((tM / tA) * 100);
-        const topPts = (topS.ftM + (topS.p2M*2) + (topS.p3M*3));
-        return { tPts, tM, tA, pct, topSName: topS.name, topPts };
+        return { tPts, tM, tA, pct, topSName: topS.name, topPts: (topS.ftM + (topS.p2M*2) + (topS.p3M*3)) };
     }
 
-    function renderReport() {
+    function renderSummaryPage() {
         const s = getStats();
         document.getElementById('report-content').innerHTML = `
-            <div class="report-item">Points<br><strong>${s.tPts}</strong></div>
+            <div class="report-item">Team Pts<br><strong>${s.tPts}</strong></div>
             <div class="report-item">FG%<br><strong>${s.pct}%</strong></div>
-            <div class="report-item">Team Shooting<br><strong>${s.tM}/${s.tA}</strong></div>
+            <div class="report-item">Shooting<br><strong>${s.tM}/${s.tA}</strong></div>
             <div class="report-item">Date<br><strong>${new Date().toLocaleDateString()}</strong></div>
-            <div class="report-item top-scorer">🔥 Top Scorer: ${s.topSName} (${s.topPts} pts)</div>
         `;
+
+        let tableHtml = '';
+        players.forEach(p => {
+            const pPts = (p.ftM + (p.p2M*2) + (p.p3M*3));
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><strong>${pPts} pts</strong> (${p.ftM+p.p2M+p.p3M}/${p.ftA+p.p2A+p.p3A})</td></tr>`;
+        });
+        document.getElementById('player-summary-table').innerHTML = tableHtml;
     }
 
     function copySummary() {
         const s = getStats();
         const text = `🏀 Game Summary (${new Date().toLocaleDateString()})\nTotal Points: ${s.tPts}\nTeam Shooting: ${s.tM}/${s.tA} (${s.pct}%)\nTop Scorer: ${s.topSName} (${s.topPts} pts)`;
-        navigator.clipboard.writeText(text).then(() => {
-            alert("Summary copied to clipboard!");
-        });
+        navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
     }
 
     function render() {
@@ -127,18 +151,14 @@
                     </div>
                 </div>`;
         });
-        renderReport();
     }
 
     function shotUI(i, label, m, a, type) {
-        return `<div class="shot-box">
-            <b>${label}: ${m}/${a}</b>
-            <div class="btn-group">
-                <button class="miss" onclick="addShot(${i},'${type}',false)">-</button>
-                <button class="make" onclick="addShot(${i},'${type}',true)">+</button>
-            </div>
-        </div>`;
+        return `<div class="shot-box">${label}: <b>${m}/${a}</b><div class="btn-group"><button class="miss" onclick="addShot(${i},'${type}',false)">-</button><button class="make" onclick="addShot(${i},'${type}',true)">+</button></div></div>`;
     }
 
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-    render
+    render();
+</script>
+</body>
+</html>
