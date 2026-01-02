@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shot Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 10px; }
+        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .player-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        input { border: none; border-bottom: 1px solid #ccc; font-size: 16px; font-weight: bold; width: 60%; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .shot-box { text-align: center; font-size: 12px; border-top: 1px solid #eee; pt: 5px; }
+        button { padding: 8px; margin: 2px; border-radius: 4px; border: none; cursor: pointer; }
+        .make { background: #4CAF50; color: white; }
+        .miss { background: #f44336; color: white; }
+        .header { display: flex; justify-content: space-between; padding: 10px; background: #ff9800; color: white; border-radius: 8px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <strong>Team Tracker</strong>
+    <div>
+        <button onclick="saveData()">Save</button>
+        <button onclick="resetScores()">Reset</button>
+    </div>
+</div>
+
+<div id="player-list"></div>
+
+<script>
+    let players = JSON.parse(localStorage.getItem('bball_stats')) || 
+        Array.from({length: 10}, (_, i) => ({name: `Player ${i+1}`, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
+
+    function render() {
+        const container = document.getElementById('player-list');
+        container.innerHTML = '';
+        players.forEach((p, i) => {
+            const points = (p.ftM * 1) + (p.p2M * 2) + (p.p3M * 3);
+            container.innerHTML += `
+                <div class="card">
+                    <div class="player-row">
+                        <input type="text" value="${p.name}" onchange="updateName(${i}, this.value)">
+                        <span style="color: #ff9800">Pts: ${points}</span>
+                    </div>
+                    <div class="stats-grid">
+                        ${shotUI(i, 'FT', p.ftM, p.ftA, 'ftM', 'ftA')}
+                        ${shotUI(i, '2PT', p.p2M, p.p2A, 'p2M', 'p2A')}
+                        ${shotUI(i, '3PT', p.p3M, p.p3A, 'p3M', 'p3A')}
+                    </div>
+                </div>`;
+        });
+    }
+
+    function shotUI(i, label, m, a, mKey, aKey) {
+        return `<div class="shot-box">
+            <b>${label}</b><br>${m}/${a}<br>
+            <button class="miss" onclick="addShot(${i},'${aKey}',false)">-</button>
+            <button class="make" onclick="addShot(${i},'${mKey}',true,'${aKey}')">+</button>
+        </div>`;
+    }
+
+    function addShot(i, key, isMake, attKey) {
+        if(isMake) { players[i][key]++; players[i][attKey]++; } 
+        else { players[i][key]++; }
+        render();
+    }
+
+    function updateName(i, val) { players[i].name = val; }
+    function saveData() { localStorage.setItem('bball_stats', JSON.stringify(players)); alert("Saved!"); }
+    function resetScores() { 
+        players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
+        render(); 
+    }
+
+    render();
+</script>
+</body>
+</html>
