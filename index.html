@@ -13,22 +13,24 @@
         
         .matchup-input { background: transparent; border: none; color: white; font-size: 16px; font-weight: bold; width: 40%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
         .card { background: white; padding: 10px; margin: 8px 0; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-        .player-header { display: flex; align-items: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
-        .name-input { border: none; font-size: 15px; font-weight: bold; width: 50%; outline: none; background: transparent; }
+        .player-header { display: flex; align-items: center; flex-wrap: wrap; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
+        .name-input { border: none; font-size: 15px; font-weight: bold; width: 40%; outline: none; background: transparent; }
         
-        .badge { font-weight: bold; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px; }
+        .badge { font-weight: bold; padding: 2px 6px; border-radius: 6px; font-size: 10px; margin-left: 3px; margin-top: 2px; }
         .points-badge { color: #e65100; background: #fff3e0; }
         .foul-badge { color: #c62828; background: #ffebee; }
+        .ast-badge { color: #1565c0; background: #e3f2fd; }
+        .reb-badge { color: #2e7d32; background: #e8f5e9; }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
         .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 10px; border: 1px solid #eee; }
-        .foul-box { background: #fff3e0; border: 1px solid #ffcc80; }
+        .hustle-box { background: #f0f4f8; border: 1px solid #d1d9e6; }
         
         .btn-group { display: flex; justify-content: center; gap: 4px; margin-top: 3px; }
         button { border: none; padding: 6px 4px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .make { background: #4caf50; color: white; width: 50%; }
         .miss { background: #f44336; color: white; width: 50%; }
-        .foul-btn { background: #607d8b; color: white; width: 100%; margin-top: 4px; height: 26px; }
+        .hustle-btn { background: #607d8b; color: white; width: 100%; margin-top: 4px; height: 26px; }
         
         .subtract-active button { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
@@ -38,9 +40,9 @@
         
         #screenshot-view { display: none; background: #2c3e50; color: white; padding: 15px; border-radius: 12px; min-height: 90vh; }
         .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; font-size: 13px; line-height: 1.4; }
-        .report-item strong { font-size: 16px; color: #ff9800; }
-        .compact-list { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; font-size: 12px; line-height: 1.4; }
+        .report-item strong { font-size: 15px; color: #ff9800; }
+        .compact-list { width: 100%; border-collapse: collapse; font-size: 12px; }
         .compact-list td { padding: 6px 4px; border-bottom: 1px solid #444; }
     </style>
 </head>
@@ -78,7 +80,7 @@
 
     function createDefaultPlayers() {
         return defaultRoster.map(name => ({
-            name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0, fouls:0
+            name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0, fouls:0, ast:0, reb:0
         }));
     }
 
@@ -91,7 +93,9 @@
                 ftM: p.ftM || 0, ftA: p.ftA || 0,
                 p2M: p.p2M || 0, p2A: p.p2A || 0,
                 p3M: p.p3M || 0, p3A: p.p3A || 0,
-                fouls: p.fouls || 0
+                fouls: p.fouls || 0,
+                ast: p.ast || 0,
+                reb: p.reb || 0
             }));
         } else {
             players = createDefaultPlayers();
@@ -116,6 +120,13 @@
         render();
     }
 
+    function addStat(index, stat) {
+        const val = isSubtractMode ? -1 : 1;
+        if (isSubtractMode && players[index][stat] <= 0) return;
+        players[index][stat] += val;
+        save(); render();
+    }
+
     function addShot(index, type, isMake) {
         const val = isSubtractMode ? -1 : 1;
         const p = players[index];
@@ -132,13 +143,6 @@
         save(); render();
     }
 
-    function addFoul(index) {
-        const val = isSubtractMode ? -1 : 1;
-        if (isSubtractMode && players[index].fouls <= 0) return;
-        players[index].fouls += val;
-        save(); render();
-    }
-
     function save() { localStorage.setItem('bball_stats', JSON.stringify(players)); }
     function saveMatchup() { localStorage.setItem('bball_matchup', document.getElementById('matchup-name').value); }
 
@@ -152,16 +156,18 @@
                 <div class="card">
                     <div class="player-header">
                         <input type="text" class="name-input" value="${p.name}" oninput="players[${i}].name=this.value; save();">
-                        <span class="badge points-badge">${points} PTS</span>
-                        <span class="badge foul-badge">${p.fouls} FLS</span>
+                        <span class="badge points-badge">${points}P</span>
+                        <span class="badge foul-badge">${p.fouls}F</span>
+                        <span class="badge ast-badge">${p.ast}A</span>
+                        <span class="badge reb-badge">${p.reb}R</span>
                     </div>
                     <div class="stats-grid">
                         ${shotUI(i, 'FT', p.ftM, p.ftA, 'ft')}
                         ${shotUI(i, '2PT', p.p2M, p.p2A, '2p')}
                         ${shotUI(i, '3PT', p.p3M, p.p3A, '3p')}
-                        <div class="shot-box foul-box">FOULS: <b>${p.fouls}</b>
-                            <button class="foul-btn" onclick="addFoul(${i})">${isSubtractMode ? '-1' : '+1'}</button>
-                        </div>
+                        ${hustleUI(i, 'FOULS', p.fouls, 'fouls')}
+                        ${hustleUI(i, 'AST', p.ast, 'ast')}
+                        ${hustleUI(i, 'REB', p.reb, 'reb')}
                     </div>
                 </div>`;
         });
@@ -175,9 +181,16 @@
         </div></div>`;
     }
 
+    function hustleUI(i, label, val, key) {
+        const op = isSubtractMode ? '-1' : '+1';
+        return `<div class="shot-box hustle-box">${label}: <b>${val}</b>
+            <button class="hustle-btn" onclick="addStat(${i},'${key}')">${op}</button>
+        </div>`;
+    }
+
     function confirmReset() {
-        if(confirm("Reset all scores and fouls?")) {
-            players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; p.fouls=0; });
+        if(confirm("Reset all game stats?")) {
+            players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; p.fouls=0; p.ast=0; p.reb=0; });
             save(); render();
         }
     }
@@ -186,80 +199,48 @@
         isSummaryMode = !isSummaryMode;
         document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
         document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
-        
-        // Hide Mode Button in Summary, show in Tracker
         document.getElementById('sub-mode-btn').style.display = isSummaryMode ? 'none' : 'inline-block';
-        
         document.getElementById('view-btn').innerText = isSummaryMode ? 'BACK' : 'SUMMARY';
         if (isSummaryMode) renderSummary();
     }
 
     function renderSummary() {
-        let tPts = 0, tFouls = 0, tFGM = 0, tFGA = 0, tFTM = 0, tFTA = 0;
+        let tPts=0, tFls=0, tAst=0, tReb=0, tFGM=0, tFGA=0, tFTM=0, tFTA=0;
         let tableHtml = '';
-        const matchup = document.getElementById('matchup-name').value;
-        document.getElementById('report-title').innerText = matchup;
-        
         players.forEach(p => {
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tPts += pts; 
-            tFouls += p.fouls;
-            
-            // Stats for player FG%
-            const pFGM = (p.p2M + p.p3M);
             const pFGA = (p.p2A + p.p3A);
-            const pFGpct = pFGA > 0 ? Math.round((pFGM / pFGA) * 100) : 0;
-            
-            // Team totals
-            tFGM += pFGM;
-            tFGA += pFGA;
-            tFTM += p.ftM;
-            tFTA += p.ftA;
-            
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts} pts</b> (FG: ${pFGpct}%) | ${p.fouls} fls</td></tr>`;
+            const pFGpct = pFGA > 0 ? Math.round(((p.p2M + p.p3M) / pFGA) * 100) : 0;
+            tPts += pts; tFls += p.fouls; tAst += p.ast; tReb += p.reb;
+            tFGM += (p.p2M + p.p3M); tFGA += pFGA; tFTM += p.ftM; tFTA += p.ftA;
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts}p</b> (${pFGpct}%) | ${p.ast}a | ${p.reb}r | ${p.fouls}f</td></tr>`;
         });
-
         const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
         const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
-
         document.getElementById('report-content').innerHTML = `
-            <div class="report-item">Total Pts<br><strong>${tPts}</strong></div>
-            <div class="report-item">Team Fouls<br><strong>${tFouls}</strong></div>
-            <div class="report-item">FG%<br><strong>${fgPct}%</strong><br>(${tFGM}/${tFGA})</div>
-            <div class="report-item">FT%<br><strong>${ftPct}%</strong><br>(${tFTM}/${tFTA})</div>
+            <div class="report-item">Pts / Fls<br><strong>${tPts} / ${tFls}</strong></div>
+            <div class="report-item">Ast / Reb<br><strong>${tAst} / ${tReb}</strong></div>
+            <div class="report-item">FG%<br><strong>${fgPct}% (${tFGM}/${tFGA})</strong></div>
+            <div class="report-item">FT%<br><strong>${ftPct}% (${tFTM}/${tFTA})</strong></div>
         `;
         document.getElementById('player-summary-table').innerHTML = tableHtml;
     }
 
     function copySummary() {
         const matchup = document.getElementById('matchup-name').value;
-        let tPts = 0, tFouls = 0, tFGM = 0, tFGA = 0, tFTM = 0, tFTA = 0;
-        let pStats = "";
+        let tPts=0, tFls=0, tAst=0, tReb=0, tFGM=0, tFGA=0, tFTM=0, tFTA=0, pStats="";
         players.forEach(p => {
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tPts += pts;
-            tFouls += p.fouls;
-            
-            const pFGM = (p.p2M + p.p3M);
-            const pFGA = (p.p2A + p.p3A);
-            const pFGpct = pFGA > 0 ? Math.round((pFGM / pFGA) * 100) : 0;
-            
-            tFGM += pFGM;
-            tFGA += pFGA;
-            tFTM += p.ftM;
-            tFTA += p.ftA;
-            
-            if(pts > 0 || p.fouls > 0) {
-                pStats += `\n- ${p.name}: ${pts}pts (FG: ${pFGpct}%), ${p.fouls} fls`;
-            }
+            tPts += pts; tFls += p.fouls; tAst += p.ast; tReb += p.reb;
+            tFGM += (p.p2M + p.p3M); tFGA += (p.p2A + p.p3A); tFTM += p.ftM; tFTA += p.ftA;
+            if(pts > 0 || p.ast > 0 || p.reb > 0 || p.fouls > 0) 
+                pStats += `\n- ${p.name}: ${pts}pts, ${p.ast}ast, ${p.reb}reb, ${p.fouls}fls`;
         });
         const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
         const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
-        
-        const text = `🏀 ${matchup}\nTotal Pts: ${tPts}\nFG: ${fgPct}% (${tFGM}/${tFGA})\nFT: ${ftPct}% (${tFTM}/${tFTA})\nTotal Fouls: ${tFouls}${pStats}`;
+        const text = `🏀 ${matchup}\nPTS: ${tPts} | FG: ${fgPct}% | FT: ${ftPct}%\nAST: ${tAst} | REB: ${tReb} | FLS: ${tFls}${pStats}`;
         navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
     }
-
     document.getElementById('matchup-name').value = localStorage.getItem('bball_matchup') || "Grafton vs X";
     render();
 </script>
