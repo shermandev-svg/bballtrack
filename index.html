@@ -6,34 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; transition: background 0.3s; }
-        /* Subtract Mode Styles */
         body.subtract-active { background: #ffebee; }
+        
         .header { background: #ff9800; color: white; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: background 0.3s; }
         .header.subtract-active { background: #d32f2f; }
         
-        .matchup-input { background: transparent; border: none; color: white; font-size: 18px; font-weight: bold; width: 45%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
+        .matchup-input { background: transparent; border: none; color: white; font-size: 16px; font-weight: bold; width: 40%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
         .card { background: white; padding: 10px; margin: 8px 0; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         .player-header { display: flex; align-items: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
-        .name-input { border: none; font-size: 16px; font-weight: bold; width: 50%; outline: none; background: transparent; }
-        .points-badge { margin-left: auto; font-weight: bold; color: #e65100; background: #fff3e0; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
-        .foul-badge { margin-left: 5px; font-weight: bold; color: #c62828; background: #ffebee; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        .name-input { border: none; font-size: 15px; font-weight: bold; width: 50%; outline: none; background: transparent; }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; }
-        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 10px; }
+        .badge { font-weight: bold; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 4px; }
+        .points-badge { color: #e65100; background: #fff3e0; }
+        .foul-badge { color: #c62828; background: #ffebee; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 10px; border: 1px solid #eee; }
         .foul-box { background: #fff3e0; border: 1px solid #ffcc80; }
         
         .btn-group { display: flex; justify-content: center; gap: 4px; margin-top: 3px; }
-        button { border: none; padding: 6px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .make { background: #4caf50; color: white; }
-        .miss { background: #f44336; color: white; }
-        .foul-btn { background: #607d8b; color: white; width: 100%; margin-top: 4px; }
+        button { border: none; padding: 6px 4px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .make { background: #4caf50; color: white; width: 50%; }
+        .miss { background: #f44336; color: white; width: 50%; }
+        .foul-btn { background: #607d8b; color: white; width: 100%; margin-top: 4px; height: 26px; }
         
-        /* Pulse effect for Subtract Mode */
         .subtract-active button { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        .mode-toggle { background: white; color: #333; font-size: 11px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-weight: bold; }
-        .summary-toggle { background: rgba(255,255,255,0.2); color: white; font-size: 11px; padding: 8px; }
+        .mode-toggle { background: white; color: #333; font-size: 10px; padding: 6px; border-radius: 5px; font-weight: bold; }
+        .summary-toggle { background: rgba(255,255,255,0.2); color: white; font-size: 10px; padding: 6px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3); }
         
         #screenshot-view { display: none; background: #2c3e50; color: white; padding: 15px; border-radius: 12px; min-height: 90vh; }
         .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
@@ -46,22 +47,23 @@
 
 <div class="header" id="main-header">
     <input type="text" class="matchup-input" id="matchup-name" value="Grafton vs X" oninput="saveMatchup()">
-    <button class="mode-toggle" id="sub-mode-btn" onclick="toggleSubtractMode()">Mode: ADD</button>
-    <button class="summary-toggle" id="view-btn" onclick="toggleView()">Summary</button>
+    <button class="mode-toggle" id="sub-mode-btn" onclick="toggleSubtractMode()">ADD MODE</button>
+    <button class="summary-toggle" id="view-btn" onclick="toggleView()">SUMMARY</button>
 </div>
 
 <div id="tracker-view">
     <div id="player-list"></div>
-    <div style="text-align: center; padding: 20px;">
-        <button style="background:#ff5252; color:white; padding:10px 20px;" onclick="confirmReset()">Reset All Stats</button>
+    <div style="text-align: center; padding: 30px 10px;">
+        <button style="background:#ff5252; color:white; padding:12px 20px; border-radius:8px; font-weight:bold;" onclick="confirmReset()">Clear Game (Reset Stats)</button>
+        <p style="font-size: 11px; color: #888; margin-top: 10px;">Current roster is saved automatically.</p>
     </div>
 </div>
 
 <div id="screenshot-view">
-    <h2 id="report-title" style="text-align: center; color: #ff9800;">Summary</h2>
+    <h2 id="report-title" style="text-align: center; color: #ff9800; margin-top: 0;">Game Summary</h2>
     <div class="report-grid" id="report-content"></div>
     <table class="compact-list" id="player-summary-table"></table>
-    <button style="width:100%; margin-top:20px; padding:15px; background:#ff9800; color:white; border-radius:8px;" onclick="copySummary()">Copy Text Summary</button>
+    <button style="width:100%; margin-top:20px; padding:15px; background:#ff9800; color:white; border-radius:8px; font-weight:bold; border:none;" onclick="copySummary()">Copy to Clipboard</button>
 </div>
 
 <script>
@@ -75,45 +77,58 @@
     ];
 
     function createDefaultPlayers() {
-        return defaultRoster.map(name => ({name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0, fouls:0}));
+        return defaultRoster.map(name => ({
+            name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0, fouls:0
+        }));
     }
 
-    let players = JSON.parse(localStorage.getItem('bball_stats')) || createDefaultPlayers();
-    // Migrating old data to include fouls if missing
-    players = players.map(p => ({ fouls: 0, ...p }));
+    // ROBUST LOADING LOGIC
+    let players = [];
+    try {
+        const saved = JSON.parse(localStorage.getItem('bball_stats'));
+        if (saved && Array.isArray(saved)) {
+            players = saved.map(p => ({
+                name: p.name || "Player",
+                ftM: p.ftM || 0, ftA: p.ftA || 0,
+                p2M: p.p2M || 0, p2A: p.p2A || 0,
+                p3M: p.p3M || 0, p3A: p.p3A || 0,
+                fouls: p.fouls || 0
+            }));
+        } else {
+            players = createDefaultPlayers();
+        }
+    } catch (e) {
+        players = createDefaultPlayers();
+    }
 
     function toggleSubtractMode() {
         isSubtractMode = !isSubtractMode;
         const btn = document.getElementById('sub-mode-btn');
         const header = document.getElementById('main-header');
         if (isSubtractMode) {
-            btn.innerText = "Mode: SUBTRACT";
-            btn.style.background = "#d32f2f";
-            btn.style.color = "white";
+            btn.innerText = "SUBTRACT MODE";
             header.classList.add('subtract-active');
             document.body.classList.add('subtract-active');
         } else {
-            btn.innerText = "Mode: ADD";
-            btn.style.background = "white";
-            btn.style.color = "#333";
+            btn.innerText = "ADD MODE";
             header.classList.remove('subtract-active');
             document.body.classList.remove('subtract-active');
         }
+        render(); // Refresh labels
     }
 
     function addShot(index, type, isMake) {
         const val = isSubtractMode ? -1 : 1;
+        const p = players[index];
         if (type === 'ft') { 
-            if (isSubtractMode && players[index].ftA <= 0) return;
-            players[index].ftA += val; if(isMake) players[index].ftM += val; 
-        }
-        if (type === '2p') { 
-            if (isSubtractMode && players[index].p2A <= 0) return;
-            players[index].p2A += val; if(isMake) players[index].p2M += val; 
-        }
-        if (type === '3p') { 
-            if (isSubtractMode && players[index].p3A <= 0) return;
-            players[index].p3A += val; if(isMake) players[index].p3M += val; 
+            if (isSubtractMode && p.ftA <= 0) return;
+            p.ftA += val; if(isMake) p.ftM += val; 
+        } else if (type === '2p') { 
+            if (isSubtractMode && p.p2A <= 0) return;
+            p.p2A += val; if(isMake) p.p2M += val; 
+        } else if (type === '3p') { 
+            if (isSubtractMode && p.p3A <= 0) return;
+            p.p3A += val; if(isMake) p.p3M += val; 
         }
         save(); render();
     }
@@ -130,6 +145,7 @@
 
     function render() {
         const container = document.getElementById('player-list');
+        if (!container) return;
         container.innerHTML = '';
         players.forEach((p, i) => {
             const points = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
@@ -137,28 +153,31 @@
                 <div class="card">
                     <div class="player-header">
                         <input type="text" class="name-input" value="${p.name}" oninput="players[${i}].name=this.value; save();">
-                        <span class="points-badge">${points} PTS</span>
-                        <span class="foul-badge">${p.fouls} FLS</span>
+                        <span class="badge points-badge">${points} PTS</span>
+                        <span class="badge foul-badge">${p.fouls} FLS</span>
                     </div>
                     <div class="stats-grid">
                         ${shotUI(i, 'FT', p.ftM, p.ftA, 'ft')}
                         ${shotUI(i, '2PT', p.p2M, p.p2A, '2p')}
                         ${shotUI(i, '3PT', p.p3M, p.p3A, '3p')}
-                        <div class="shot-box foul-box">FOULS: <b>${p.fouls}</b><button class="foul-btn" onclick="addFoul(${i})">${isSubtractMode ? '-1' : '+1'}</button></div>
+                        <div class="shot-box foul-box">FOULS: <b>${p.fouls}</b>
+                            <button class="foul-btn" onclick="addFoul(${i})">${isSubtractMode ? '-1' : '+1'}</button>
+                        </div>
                     </div>
                 </div>`;
         });
     }
 
     function shotUI(i, label, m, a, type) {
+        const op = isSubtractMode ? '-' : '+';
         return `<div class="shot-box">${label}: <b>${m}/${a}</b><div class="btn-group">
-            <button class="miss" onclick="addShot(${i},'${type}',false)">${isSubtractMode ? '-miss' : '-'}</button>
-            <button class="make" onclick="addShot(${i},'${type}',true)">${isSubtractMode ? '-make' : '+'}</button>
+            <button class="miss" onclick="addShot(${i},'${type}',false)">${op}</button>
+            <button class="make" onclick="addShot(${i},'${type}',true)">${op}</button>
         </div></div>`;
     }
 
     function confirmReset() {
-        if(confirm("Reset all game stats?")) {
+        if(confirm("Are you sure? This resets all scores and fouls to zero.")) {
             players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; p.fouls=0; });
             save(); render();
         }
@@ -168,23 +187,45 @@
         isSummaryMode = !isSummaryMode;
         document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
         document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
+        document.getElementById('view-btn').innerText = isSummaryMode ? 'BACK' : 'SUMMARY';
         if (isSummaryMode) renderSummary();
     }
 
     function renderSummary() {
         let tPts = 0, tFouls = 0;
         let tableHtml = '';
+        const matchup = document.getElementById('matchup-name').value;
+        document.getElementById('report-title').innerText = matchup;
+        
         players.forEach(p => {
             const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tPts += pPts; tFouls += p fouls;
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pPts} pts</b> | ${p.fouls} fls</td></tr>`;
+            tPts += pPts; 
+            tFouls += p.fouls;
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pPts} pts</b> | ${p.fouls} fouls</td></tr>`;
         });
-        document.getElementById('report-content').innerHTML = `<div class="report-item">Team Pts<br><strong>${tPts}</strong></div><div class="report-item">Team Fouls<br><strong>${tFouls}</strong></div>`;
+        document.getElementById('report-content').innerHTML = `
+            <div class="report-item">Team Pts<br><strong>${tPts}</strong></div>
+            <div class="report-item">Team Fouls<br><strong>${tFouls}</strong></div>
+        `;
         document.getElementById('player-summary-table').innerHTML = tableHtml;
     }
 
-    render();
+    function copySummary() {
+        const matchup = document.getElementById('matchup-name').value;
+        let tPts = 0;
+        let pStats = "";
+        players.forEach(p => {
+            const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            tPts += pts;
+            if(pts > 0 || p.fouls > 0) pStats += `\n- ${p.name}: ${pts}pts, ${p.fouls} fls`;
+        });
+        const text = `🏀 ${matchup}\nTotal Pts: ${tPts}${pStats}`;
+        navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+    }
+
+    // Initialize
     document.getElementById('matchup-name').value = localStorage.getItem('bball_matchup') || "Grafton vs X";
+    render();
 </script>
 </body>
 </html>
