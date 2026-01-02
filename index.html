@@ -186,6 +186,10 @@
         isSummaryMode = !isSummaryMode;
         document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
         document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
+        
+        // Hide Mode Button in Summary, show in Tracker
+        document.getElementById('sub-mode-btn').style.display = isSummaryMode ? 'none' : 'inline-block';
+        
         document.getElementById('view-btn').innerText = isSummaryMode ? 'BACK' : 'SUMMARY';
         if (isSummaryMode) renderSummary();
     }
@@ -200,11 +204,19 @@
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             tPts += pts; 
             tFouls += p.fouls;
-            tFGM += (p.p2M + p.p3M);
-            tFGA += (p.p2A + p.p3A);
+            
+            // Stats for player FG%
+            const pFGM = (p.p2M + p.p3M);
+            const pFGA = (p.p2A + p.p3A);
+            const pFGpct = pFGA > 0 ? Math.round((pFGM / pFGA) * 100) : 0;
+            
+            // Team totals
+            tFGM += pFGM;
+            tFGA += pFGA;
             tFTM += p.ftM;
             tFTA += p.ftA;
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts} pts</b> | ${p.fouls} fls</td></tr>`;
+            
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts} pts</b> (FG: ${pFGpct}%) | ${p.fouls} fls</td></tr>`;
         });
 
         const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
@@ -227,11 +239,19 @@
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             tPts += pts;
             tFouls += p.fouls;
-            tFGM += (p.p2M + p.p3M);
-            tFGA += (p.p2A + p.p3A);
+            
+            const pFGM = (p.p2M + p.p3M);
+            const pFGA = (p.p2A + p.p3A);
+            const pFGpct = pFGA > 0 ? Math.round((pFGM / pFGA) * 100) : 0;
+            
+            tFGM += pFGM;
+            tFGA += pFGA;
             tFTM += p.ftM;
             tFTA += p.ftA;
-            if(pts > 0 || p.fouls > 0) pStats += `\n- ${p.name}: ${pts}pts, ${p.fouls} fls`;
+            
+            if(pts > 0 || p.fouls > 0) {
+                pStats += `\n- ${p.name}: ${pts}pts (FG: ${pFGpct}%), ${p.fouls} fls`;
+            }
         });
         const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
         const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
