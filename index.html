@@ -140,3 +140,43 @@
         let tableHtml = '';
         players.forEach(p => {
             const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><strong>${pPts} pts</strong> (FG: ${p.p2M+p.p3M}/${p.p2A+p.p3A})</td></tr>`;
+        });
+        document.getElementById('player-summary-table').innerHTML = tableHtml;
+    }
+
+    function copySummary() {
+        const s = getStats();
+        const matchup = document.getElementById('matchup-name').value;
+        const text = `🏀 ${matchup} (${new Date().toLocaleDateString()})\nTotal Points: ${s.tPts}\nFG%: ${s.fgPct}% (${s.tFGM}/${s.tFGA})\nFT: ${s.tFTM}/${s.tFTA}`;
+        navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+    }
+
+    function render() {
+        const container = document.getElementById('player-list');
+        if (!container) return;
+        container.innerHTML = '';
+        players.forEach((p, i) => {
+            const points = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            container.innerHTML += `
+                <div class="card">
+                    <div class="player-header">
+                        <input type="text" class="name-input" value="${p.name}" oninput="updateName(${i}, this.value)">
+                        <span class="points-badge">${points} PTS</span>
+                    </div>
+                    <div class="stats-grid">
+                        ${shotUI(i, 'FT', p.ftM, p.ftA, 'ft')}
+                        ${shotUI(i, '2PT', p.p2M, p.p2A, '2p')}
+                        ${shotUI(i, '3PT', p.p3M, p.p3A, '3p')}
+                    </div>
+                </div>`;
+        });
+    }
+
+    function shotUI(i, label, m, a, type) {
+        return `<div class="shot-box">${label}: <b>${m}/${a}</b><div class="btn-group"><button class="miss" onclick="addShot(${i},'${type}',false)">-</button><button class="make" onclick="addShot(${i},'${type}',true)">+</button></div></div>`;
+    }
+    render();
+</script>
+</body>
+</html>
