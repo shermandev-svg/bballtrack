@@ -156,10 +156,10 @@
                 <div class="card">
                     <div class="player-header">
                         <input type="text" class="name-input" value="${p.name}" oninput="players[${i}].name=this.value; save();">
-                        <span class="badge points-badge">${points}P</span>
-                        <span class="badge foul-badge">${p.fouls}F</span>
-                        <span class="badge ast-badge">${p.ast}A</span>
-                        <span class="badge reb-badge">${p.reb}R</span>
+                        <span class="badge points-badge">${points} PTS</span>
+                        <span class="badge foul-badge">${p.fouls} FLS</span>
+                        <span class="badge ast-badge">${p.ast} A</span>
+                        <span class="badge reb-badge">${p.reb} R</span>
                     </div>
                     <div class="stats-grid">
                         ${shotUI(i, 'FT', p.ftM, p.ftA, 'ft')}
@@ -174,10 +174,12 @@
     }
 
     function shotUI(i, label, m, a, type) {
-        const op = isSubtractMode ? '-' : '+';
+        // Miss side is blank in Add Mode, '-' in Subtract Mode
+        const missIcon = isSubtractMode ? '-' : '';
+        const makeIcon = isSubtractMode ? '-' : '+';
         return `<div class="shot-box">${label}: <b>${m}/${a}</b><div class="btn-group">
-            <button class="miss" onclick="addShot(${i},'${type}',false)">${op}</button>
-            <button class="make" onclick="addShot(${i},'${type}',true)">${op}</button>
+            <button class="miss" onclick="addShot(${i},'${type}',false)">${missIcon}</button>
+            <button class="make" onclick="addShot(${i},'${type}',true)">${makeIcon}</button>
         </div></div>`;
     }
 
@@ -209,19 +211,23 @@
         let tableHtml = '';
         players.forEach(p => {
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            const pFGM = (p.p2M + p.p3M);
             const pFGA = (p.p2A + p.p3A);
-            const pFGpct = pFGA > 0 ? Math.round(((p.p2M + p.p3M) / pFGA) * 100) : 0;
+            const pFGpct = pFGA > 0 ? Math.round((pFGM / pFGA) * 100) : 0;
+            const pFTpct = p.ftA > 0 ? Math.round((p.ftM / p.ftA) * 100) : 0;
+
             tPts += pts; tFls += p.fouls; tAst += p.ast; tReb += p.reb;
-            tFGM += (p.p2M + p.p3M); tFGA += pFGA; tFTM += p.ftM; tFTA += p.ftA;
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts}p</b> (${pFGpct}%) | ${p.ast}a | ${p.reb}r | ${p.fouls}f</td></tr>`;
+            tFGM += pFGM; tFGA += pFGA; tFTM += p.ftM; tFTA += p.ftA;
+            
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pts}pts</b> | FG: ${pFGpct}% | FT: ${pFTpct}% | ${p.ast}a | ${p.reb}r</td></tr>`;
         });
         const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
         const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
         document.getElementById('report-content').innerHTML = `
             <div class="report-item">Pts / Fls<br><strong>${tPts} / ${tFls}</strong></div>
             <div class="report-item">Ast / Reb<br><strong>${tAst} / ${tReb}</strong></div>
-            <div class="report-item">FG%<br><strong>${fgPct}% (${tFGM}/${tFGA})</strong></div>
-            <div class="report-item">FT%<br><strong>${ftPct}% (${tFTM}/${tFTA})</strong></div>
+            <div class="report-item">Team FG%<br><strong>${fgPct}% (${tFGM}/${tFGA})</strong></div>
+            <div class="report-item">Team FT%<br><strong>${ftPct}% (${tFTM}/${tFTA})</strong></div>
         `;
         document.getElementById('player-summary-table').innerHTML = tableHtml;
     }
@@ -231,10 +237,13 @@
         let tPts=0, tFls=0, tAst=0, tReb=0, tFGM=0, tFGA=0, tFTM=0, tFTA=0, pStats="";
         players.forEach(p => {
             const pts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            const pFGpct = (p.p2A + p.p3A) > 0 ? Math.round(((p.p2M + p.p3M) / (p.p2A + p.p3A)) * 100) : 0;
+            const pFTpct = p.ftA > 0 ? Math.round((p.ftM / p.ftA) * 100) : 0;
+            
             tPts += pts; tFls += p.fouls; tAst += p.ast; tReb += p.reb;
             tFGM += (p.p2M + p.p3M); tFGA += (p.p2A + p.p3A); tFTM += p.ftM; tFTA += p.ftA;
             if(pts > 0 || p.ast > 0 || p.reb > 0 || p.fouls > 0) 
-                pStats += `\n- ${p.name}: ${pts}pts, ${p.ast}ast, ${p.reb}reb, ${p.fouls}fls`;
+                pStats += `\n- ${p.name}: ${pts}pts (FG: ${pFGpct}%, FT: ${pFTpct}%), ${p.ast}ast, ${p.reb}reb, ${p.fouls}fls`;
         });
         const fgPct = tFGA > 0 ? Math.round((tFGM / tFGA) * 100) : 0;
         const ftPct = tFTA > 0 ? Math.round((tFTM / tFTA) * 100) : 0;
