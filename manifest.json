@@ -1,0 +1,15 @@
+{
+  "name": "Youth Basketball Tracker",
+  "short_name": "ShotTracker",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff9800",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/889/889442.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
