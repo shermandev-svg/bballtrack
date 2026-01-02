@@ -8,7 +8,7 @@
     <style>
         body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; }
         .header { background: #ff9800; color: white; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .matchup-input { background: transparent; border: none; color: white; font-size: 18px; font-weight: bold; width: 60%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
+        .matchup-input { background: transparent; border: none; color: white; font-size: 18px; font-weight: bold; width: 65%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
         .card { background: white; padding: 10px; margin: 8px 0; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         .player-header { display: flex; align-items: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
         .name-input { border: none; font-size: 16px; font-weight: bold; width: 60%; outline: none; background: transparent; }
@@ -19,33 +19,39 @@
         button { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .make { background: #4caf50; color: white; }
         .miss { background: #f44336; color: white; }
-        .reset-btn { background: #333; color: white; font-size: 11px; margin-left: 5px; }
-        .summary-toggle { background: #fff; color: #ff9800; font-size: 11px; }
+        
+        /* Layout Buttons */
+        .summary-toggle { background: #fff; color: #ff9800; font-size: 12px; padding: 8px 12px; }
+        .reset-container { padding: 30px 10px; text-align: center; }
+        .reset-btn { background: #ff5252; color: white; width: 80%; padding: 12px; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
+        /* Screenshot Summary View */
         #screenshot-view { display: none; background: #2c3e50; color: white; padding: 20px; border-radius: 12px; min-height: 90vh; }
         .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .report-item { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; text-align: center; }
         .compact-list { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .compact-list td { padding: 5px; border-bottom: 1px solid #444; }
-        .share-btn { width: 100%; margin-top: 15px; padding: 12px; background: #ff9800; color: white; border-radius: 8px; }
+        .compact-list td { padding: 8px 5px; border-bottom: 1px solid #444; }
+        .share-btn { width: 100%; margin-top: 15px; padding: 12px; background: #ff9800; color: white; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <input type="text" class="matchup-input" id="matchup-name" value="Grafton vs X" oninput="saveMatchup()">
-    <div>
-        <button class="summary-toggle" id="mode-btn" onclick="toggleView()">View Summary</button>
-        <button class="reset-btn" onclick="confirmReset()">Reset</button>
-    </div>
+    <button class="summary-toggle" id="mode-btn" onclick="toggleView()">View Summary</button>
 </div>
 
 <div id="tracker-view">
     <div id="player-list"></div>
+    
+    <div class="reset-container">
+        <button class="reset-btn" onclick="confirmReset()">Clear Game Stats (Reset)</button>
+        <p style="font-size: 11px; color: #888; margin-top: 10px;">Warning: This resets scores for all players.</p>
+    </div>
 </div>
 
 <div id="screenshot-view">
-    <h2 id="report-title" style="text-align: center; margin-top: 0; color: #ff9800;">Grafton vs X</h2>
+    <h2 id="report-title" style="text-align: center; margin-top: 0; color: #ff9800; border-bottom: 1px solid #444; padding-bottom: 10px;">Grafton vs X</h2>
     <div class="report-grid" id="report-content"></div>
     <table class="compact-list" id="player-summary-table"></table>
     <button class="share-btn" onclick="copySummary()">Copy Text Summary</button>
@@ -67,14 +73,15 @@
         document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
         document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
         document.getElementById('mode-btn').innerText = isSummaryMode ? 'Back to Game' : 'View Summary';
+        
         if (isSummaryMode) {
             document.getElementById('report-title').innerText = document.getElementById('matchup-name').value;
             renderSummaryPage();
+            window.scrollTo(0, 0); // Jump to top for screenshot
         }
     }
 
     function save() { localStorage.setItem('bball_stats', JSON.stringify(players)); }
-
     function updateName(index, newName) { players[index].name = newName; save(); }
 
     function addShot(index, type, isMake) {
@@ -85,17 +92,17 @@
     }
 
     function confirmReset() {
-        if(confirm("Clear all scores? Names will stay.")) {
+        if(confirm("Clear all scores? Player names will be saved.")) {
             players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
             save(); render();
-            if(isSummaryMode) renderSummaryPage();
+            alert("Scores reset to zero.");
         }
     }
 
     function getStats() {
         let tPts = 0, tFGM = 0, tFGA = 0, tFTM = 0, tFTA = 0;
         players.forEach(p => {
-            tPts += (p.ftM + (p.p2M*2) + (p.p3M*3));
+            tPts += (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             tFGM += (p.p2M + p.p3M);
             tFGA += (p.p2A + p.p3A);
             tFTM += p.ftM;
@@ -112,11 +119,11 @@
             <div class="report-item">Team Pts<br><strong>${s.tPts}</strong></div>
             <div class="report-item">FG% (2/3pt)<br><strong>${s.fgPct}%</strong></div>
             <div class="report-item">FG Made/Att<br><strong>${s.tFGM}/${s.tFGA}</strong></div>
-            <div class="report-item">FT %<br><strong>${s.tFTM}/${s.tFTA} (${s.ftPct}%)</strong></div>
+            <div class="report-item">FT Made/Att<br><strong>${s.tFTM}/${s.tFTA} (${s.ftPct}%)</strong></div>
         `;
         let tableHtml = '';
         players.forEach(p => {
-            const pPts = (p.ftM + (p.p2M*2) + (p.p3M*3));
+            const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><strong>${pPts} pts</strong> (FG: ${p.p2M+p.p3M}/${p.p2A+p.p3A})</td></tr>`;
         });
         document.getElementById('player-summary-table').innerHTML = tableHtml;
@@ -131,9 +138,10 @@
 
     function render() {
         const container = document.getElementById('player-list');
+        if (!container) return;
         container.innerHTML = '';
         players.forEach((p, i) => {
-            const points = (p.ftM * 1) + (p.p2M * 2) + (p.p3M * 3);
+            const points = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             container.innerHTML += `
                 <div class="card">
                     <div class="player-header">
