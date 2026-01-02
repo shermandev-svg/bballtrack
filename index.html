@@ -57,15 +57,30 @@
 <script>
     let isSummaryMode = false;
     
-    // Default Roster with 12 players
-    const defaultRoster = [
+    const defaultRosterNames = [
         "#3 Harper H", "#33 Madison J", "#24 Mattie D", "#14 Aubrey S", 
         "#13 Eleanor G", "#23 Kennedy H", "#1 Fallon L", "#4 Katie H", 
         "#10 Reese K", "#15 Brielle H", "#8 Daliyla L", "#26 Nora Z"
     ];
 
-    let players = JSON.parse(localStorage.getItem('bball_stats')) || 
-        defaultRoster.map(name => ({name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
+    function createDefaultPlayers() {
+        return defaultRosterNames.map(name => ({name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
+    }
+
+    // LOAD DATA WITH SAFETY CHECK
+    let players;
+    try {
+        let saved = JSON.parse(localStorage.getItem('bball_stats'));
+        // If data exists AND it's a list of 12, use it. Otherwise, use defaults.
+        if (saved && Array.isArray(saved) && saved.length === 12) {
+            players = saved;
+        } else {
+            players = createDefaultPlayers();
+            localStorage.setItem('bball_stats', JSON.stringify(players));
+        }
+    } catch (e) {
+        players = createDefaultPlayers();
+    }
     
     document.getElementById('matchup-name').value = localStorage.getItem('bball_matchup') || "Grafton vs X";
 
@@ -125,14 +140,3 @@
         let tableHtml = '';
         players.forEach(p => {
             const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><strong>${pPts} pts</strong> (FG: ${p.p2M+p.p3M}/${p.p2A+p.p3A})</td></tr>`;
-        });
-        document.getElementById('player-summary-table').innerHTML = tableHtml;
-    }
-
-    function copySummary() {
-        const s = getStats();
-        const matchup = document.getElementById('matchup-name').value;
-        const text = `🏀 ${matchup} (${new Date().toLocaleDateString()})\nPoints: ${s.tPts}\nFG: ${s.fgPct}% (${s.tFGM}/${s.tFGA})\nFT: ${s.tFTM}/${s.tFTA}`;
-        navigator.clipboard.writeText(text).then(() => alert("Copied!"));
-    }
