@@ -1,36 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Shot Tracker</title>
+    <meta charset="UTF-8">
+    <title>Youth Basketball Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding: 10px; }
-        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .player-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        input { border: none; border-bottom: 1px solid #ccc; font-size: 16px; font-weight: bold; width: 60%; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .shot-box { text-align: center; font-size: 12px; border-top: 1px solid #eee; pt: 5px; }
-        button { padding: 8px; margin: 2px; border-radius: 4px; border: none; cursor: pointer; }
-        .make { background: #4CAF50; color: white; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; margin: 0; padding: 10px; padding-bottom: 80px; }
+        .header { background: #ff9800; color: white; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .player-header { display: flex; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
+        .name-input { border: none; font-size: 18px; font-weight: bold; width: 60%; color: #333; outline: none; border-bottom: 1px dashed #ccc; }
+        .name-input:focus { border-bottom: 1px solid #ff9800; }
+        .points-badge { margin-left: auto; background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .shot-box { text-align: center; background: #fafafa; padding: 8px; border-radius: 8px; }
+        .btn-group { display: flex; justify-content: space-around; margin-top: 5px; }
+        button { border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .make { background: #4caf50; color: white; }
         .miss { background: #f44336; color: white; }
-        .header { display: flex; justify-content: space-between; padding: 10px; background: #ff9800; color: white; border-radius: 8px; margin-bottom: 10px; }
+        .reset-btn { background: #ffcc80; color: #e65100; }
+        .footer-stats { position: fixed; bottom: 0; left: 0; right: 0; background: #333; color: white; padding: 15px; display: flex; justify-content: space-around; font-size: 14px; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <strong>Team Tracker</strong>
-    <div>
-        <button onclick="saveData()">Save</button>
-        <button onclick="resetScores()">Reset</button>
-    </div>
+    <strong>Shot Tracker</strong>
+    <button class="reset-btn" onclick="confirmReset()">Reset Scores</button>
 </div>
 
 <div id="player-list"></div>
 
+<div class="footer-stats" id="team-summary">
+    </div>
+
 <script>
+    // 1. Load data or set defaults
     let players = JSON.parse(localStorage.getItem('bball_stats')) || 
         Array.from({length: 10}, (_, i) => ({name: `Player ${i+1}`, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
+
+    // 2. Save data function
+    function save() {
+        localStorage.setItem('bball_stats', JSON.stringify(players));
+        renderSummary();
+    }
+
+    function updateName(index, newName) {
+        players[index].name = newName;
+        save(); // Save immediately when name changes
+    }
+
+    function addShot(index, type, isMake) {
+        if (type === 'ft') { players[index].ftA++; if(isMake) players[index].ftM++; }
+        if (type === '2p') { players[index].p2A++; if(isMake) players[index].p2M++; }
+        if (type === '3p') { players[index].p3A++; if(isMake) players[index].p3M++; }
+        save();
+        render();
+    }
+
+    function confirmReset() {
+        if(confirm("Clear all scores? Names will be kept.")) {
+            players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
+            save();
+            render();
+        }
+    }
+
+    function renderSummary() {
+        let tPts = 0, tM = 0, tA = 0;
+        players.forEach(p => {
+            tPts += (p.ftM + (p.p2M*2) + (p.p3M*3));
+            tM += (p.ftM + p.p2M + p.p3M);
+            tA += (p.ftA + p.p2A + p.p3A);
+        });
+        const pct = tA === 0 ? 0 : Math.round((tM / tA) * 100);
+        document.getElementById('team-summary').innerHTML = `
+            <span>Team Pts: <b>${tPts}</b></span>
+            <span>Total FG: <b>${tM}/${tA} (${pct}%)</b></span>
+        `;
+    }
 
     function render() {
         const container = document.getElementById('player-list');
@@ -39,38 +88,33 @@
             const points = (p.ftM * 1) + (p.p2M * 2) + (p.p3M * 3);
             container.innerHTML += `
                 <div class="card">
-                    <div class="player-row">
-                        <input type="text" value="${p.name}" onchange="updateName(${i}, this.value)">
-                        <span style="color: #ff9800">Pts: ${points}</span>
+                    <div class="player-header">
+                        <input type="text" class="name-input" value="${p.name}" oninput="updateName(${i}, this.value)">
+                        <span class="points-badge">${points} PTS</span>
                     </div>
                     <div class="stats-grid">
-                        ${shotUI(i, 'FT', p.ftM, p.ftA, 'ftM', 'ftA')}
-                        ${shotUI(i, '2PT', p.p2M, p.p2A, 'p2M', 'p2A')}
-                        ${shotUI(i, '3PT', p.p3M, p.p3A, 'p3M', 'p3A')}
+                        ${shotUI(i, 'FT', p.ftM, p.ftA, 'ft')}
+                        ${shotUI(i, '2PT', p.p2M, p.p2A, '2p')}
+                        ${shotUI(i, '3PT', p.p3M, p.p3A, '3p')}
                     </div>
                 </div>`;
         });
+        renderSummary();
     }
 
-    function shotUI(i, label, m, a, mKey, aKey) {
+    function shotUI(i, label, m, a, type) {
         return `<div class="shot-box">
-            <b>${label}</b><br>${m}/${a}<br>
-            <button class="miss" onclick="addShot(${i},'${aKey}',false)">-</button>
-            <button class="make" onclick="addShot(${i},'${mKey}',true,'${aKey}')">+</button>
+            <small>${label}</small><br><b>${m}/${a}</b>
+            <div class="btn-group">
+                <button class="miss" onclick="addShot(${i},'${type}',false)">-</button>
+                <button class="make" onclick="addShot(${i},'${type}',true)">+</button>
+            </div>
         </div>`;
     }
 
-    function addShot(i, key, isMake, attKey) {
-        if(isMake) { players[i][key]++; players[i][attKey]++; } 
-        else { players[i][key]++; }
-        render();
-    }
-
-    function updateName(i, val) { players[i].name = val; }
-    function saveData() { localStorage.setItem('bball_stats', JSON.stringify(players)); alert("Saved!"); }
-    function resetScores() { 
-        players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
-        render(); 
+    // Register Service Worker for Offline Use
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
     }
 
     render();
