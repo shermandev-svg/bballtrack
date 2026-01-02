@@ -4,179 +4,187 @@
     <meta charset="UTF-8">
     <title>Youth Basketball Tracker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; }
-        .header { background: #ff9800; color: white; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .matchup-input { background: transparent; border: none; color: white; font-size: 18px; font-weight: bold; width: 65%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; transition: background 0.3s; }
+        /* Subtract Mode Styles */
+        body.subtract-active { background: #ffebee; }
+        .header { background: #ff9800; color: white; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: background 0.3s; }
+        .header.subtract-active { background: #d32f2f; }
+        
+        .matchup-input { background: transparent; border: none; color: white; font-size: 18px; font-weight: bold; width: 45%; outline: none; border-bottom: 1px dashed rgba(255,255,255,0.5); }
         .card { background: white; padding: 10px; margin: 8px 0; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
         .player-header { display: flex; align-items: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #eee; }
-        .name-input { border: none; font-size: 16px; font-weight: bold; width: 60%; outline: none; background: transparent; }
-        .points-badge { margin-left: auto; font-weight: bold; color: #e65100; background: #fff3e0; padding: 2px 8px; border-radius: 10px; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 11px; }
+        .name-input { border: none; font-size: 16px; font-weight: bold; width: 50%; outline: none; background: transparent; }
+        .points-badge { margin-left: auto; font-weight: bold; color: #e65100; background: #fff3e0; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        .foul-badge { margin-left: 5px; font-weight: bold; color: #c62828; background: #ffebee; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; }
+        .shot-box { text-align: center; background: #f9f9f9; padding: 5px; border-radius: 5px; font-size: 10px; }
+        .foul-box { background: #fff3e0; border: 1px solid #ffcc80; }
+        
         .btn-group { display: flex; justify-content: center; gap: 4px; margin-top: 3px; }
-        button { border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        button { border: none; padding: 6px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .make { background: #4caf50; color: white; }
         .miss { background: #f44336; color: white; }
+        .foul-btn { background: #607d8b; color: white; width: 100%; margin-top: 4px; }
         
-        .summary-toggle { background: #fff; color: #ff9800; font-size: 12px; padding: 8px 12px; }
-        .reset-container { padding: 30px 10px; text-align: center; }
-        .reset-btn { background: #ff5252; color: white; width: 80%; padding: 12px; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        /* Pulse effect for Subtract Mode */
+        .subtract-active button { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
+        .mode-toggle { background: white; color: #333; font-size: 11px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-weight: bold; }
+        .summary-toggle { background: rgba(255,255,255,0.2); color: white; font-size: 11px; padding: 8px; }
+        
         #screenshot-view { display: none; background: #2c3e50; color: white; padding: 15px; border-radius: 12px; min-height: 90vh; }
         .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .report-item { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; text-align: center; font-size: 13px; }
         .compact-list { width: 100%; border-collapse: collapse; font-size: 13px; }
         .compact-list td { padding: 6px 4px; border-bottom: 1px solid #444; }
-        .share-btn { width: 100%; margin-top: 15px; padding: 12px; background: #ff9800; color: white; border-radius: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
 
-<div class="header">
+<div class="header" id="main-header">
     <input type="text" class="matchup-input" id="matchup-name" value="Grafton vs X" oninput="saveMatchup()">
-    <button class="summary-toggle" id="mode-btn" onclick="toggleView()">View Summary</button>
+    <button class="mode-toggle" id="sub-mode-btn" onclick="toggleSubtractMode()">Mode: ADD</button>
+    <button class="summary-toggle" id="view-btn" onclick="toggleView()">Summary</button>
 </div>
 
 <div id="tracker-view">
     <div id="player-list"></div>
-    <div class="reset-container">
-        <button class="reset-btn" onclick="confirmReset()">Clear Game Stats (Reset)</button>
-        <p style="font-size: 11px; color: #888; margin-top: 10px;">Warning: Scores will reset. Roster names will be saved.</p>
+    <div style="text-align: center; padding: 20px;">
+        <button style="background:#ff5252; color:white; padding:10px 20px;" onclick="confirmReset()">Reset All Stats</button>
     </div>
 </div>
 
 <div id="screenshot-view">
-    <h2 id="report-title" style="text-align: center; margin-top: 0; color: #ff9800; border-bottom: 1px solid #444; padding-bottom: 10px;">Grafton vs X</h2>
+    <h2 id="report-title" style="text-align: center; color: #ff9800;">Summary</h2>
     <div class="report-grid" id="report-content"></div>
     <table class="compact-list" id="player-summary-table"></table>
-    <button class="share-btn" onclick="copySummary()">Copy Text Summary</button>
+    <button style="width:100%; margin-top:20px; padding:15px; background:#ff9800; color:white; border-radius:8px;" onclick="copySummary()">Copy Text Summary</button>
 </div>
 
 <script>
+    let isSubtractMode = false;
     let isSummaryMode = false;
     
-    const defaultRosterNames = [
+    const defaultRoster = [
         "#3 Harper H", "#33 Madison J", "#24 Mattie D", "#14 Aubrey S", 
         "#13 Eleanor G", "#23 Kennedy H", "#1 Fallon L", "#4 Katie H", 
         "#10 Reese K", "#15 Brielle H", "#8 Daliyla L", "#26 Nora Z"
     ];
 
     function createDefaultPlayers() {
-        return defaultRosterNames.map(name => ({name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0}));
+        return defaultRoster.map(name => ({name: name, ftM:0, ftA:0, p2M:0, p2A:0, p3M:0, p3A:0, fouls:0}));
     }
 
-    // LOAD DATA WITH SAFETY CHECK
-    let players;
-    try {
-        let saved = JSON.parse(localStorage.getItem('bball_stats'));
-        // If data exists AND it's a list of 12, use it. Otherwise, use defaults.
-        if (saved && Array.isArray(saved) && saved.length === 12) {
-            players = saved;
+    let players = JSON.parse(localStorage.getItem('bball_stats')) || createDefaultPlayers();
+    // Migrating old data to include fouls if missing
+    players = players.map(p => ({ fouls: 0, ...p }));
+
+    function toggleSubtractMode() {
+        isSubtractMode = !isSubtractMode;
+        const btn = document.getElementById('sub-mode-btn');
+        const header = document.getElementById('main-header');
+        if (isSubtractMode) {
+            btn.innerText = "Mode: SUBTRACT";
+            btn.style.background = "#d32f2f";
+            btn.style.color = "white";
+            header.classList.add('subtract-active');
+            document.body.classList.add('subtract-active');
         } else {
-            players = createDefaultPlayers();
-            localStorage.setItem('bball_stats', JSON.stringify(players));
-        }
-    } catch (e) {
-        players = createDefaultPlayers();
-    }
-    
-    document.getElementById('matchup-name').value = localStorage.getItem('bball_matchup') || "Grafton vs X";
-
-    function saveMatchup() { localStorage.setItem('bball_matchup', document.getElementById('matchup-name').value); }
-
-    function toggleView() {
-        isSummaryMode = !isSummaryMode;
-        document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
-        document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
-        document.getElementById('mode-btn').innerText = isSummaryMode ? 'Back to Game' : 'View Summary';
-        if (isSummaryMode) {
-            document.getElementById('report-title').innerText = document.getElementById('matchup-name').value;
-            renderSummaryPage();
-            window.scrollTo(0, 0);
+            btn.innerText = "Mode: ADD";
+            btn.style.background = "white";
+            btn.style.color = "#333";
+            header.classList.remove('subtract-active');
+            document.body.classList.remove('subtract-active');
         }
     }
-
-    function save() { localStorage.setItem('bball_stats', JSON.stringify(players)); }
-    function updateName(index, newName) { players[index].name = newName; save(); }
 
     function addShot(index, type, isMake) {
-        if (type === 'ft') { players[index].ftA++; if(isMake) players[index].ftM++; }
-        if (type === '2p') { players[index].p2A++; if(isMake) players[index].p2M++; }
-        if (type === '3p') { players[index].p3A++; if(isMake) players[index].p3M++; }
+        const val = isSubtractMode ? -1 : 1;
+        if (type === 'ft') { 
+            if (isSubtractMode && players[index].ftA <= 0) return;
+            players[index].ftA += val; if(isMake) players[index].ftM += val; 
+        }
+        if (type === '2p') { 
+            if (isSubtractMode && players[index].p2A <= 0) return;
+            players[index].p2A += val; if(isMake) players[index].p2M += val; 
+        }
+        if (type === '3p') { 
+            if (isSubtractMode && players[index].p3A <= 0) return;
+            players[index].p3A += val; if(isMake) players[index].p3M += val; 
+        }
         save(); render();
     }
 
-    function confirmReset() {
-        if(confirm("Reset scores to zero? Names are kept.")) {
-            players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; });
-            save(); render();
-        }
+    function addFoul(index) {
+        const val = isSubtractMode ? -1 : 1;
+        if (isSubtractMode && players[index].fouls <= 0) return;
+        players[index].fouls += val;
+        save(); render();
     }
 
-    function getStats() {
-        let tPts = 0, tFGM = 0, tFGA = 0, tFTM = 0, tFTA = 0;
-        players.forEach(p => {
-            tPts += (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tFGM += (p.p2M + p.p3M);
-            tFGA += (p.p2A + p.p3A);
-            tFTM += p.ftM;
-            tFTA += p.ftA;
-        });
-        const fgPct = tFGA === 0 ? 0 : Math.round((tFGM / tFGA) * 100);
-        const ftPct = tFTA === 0 ? 0 : Math.round((tFTM / tFTA) * 100);
-        return { tPts, tFGM, tFGA, fgPct, tFTM, tFTA, ftPct };
-    }
-
-    function renderSummaryPage() {
-        const s = getStats();
-        document.getElementById('report-content').innerHTML = `
-            <div class="report-item">Team Pts<br><strong>${s.tPts}</strong></div>
-            <div class="report-item">FG% (2/3s)<br><strong>${s.fgPct}%</strong></div>
-            <div class="report-item">FG Made/Att<br><strong>${s.tFGM}/${s.tFGA}</strong></div>
-            <div class="report-item">FT Made/Att<br><strong>${s.tFTM}/${s.tFTA} (${s.ftPct}%)</strong></div>
-        `;
-        let tableHtml = '';
-        players.forEach(p => {
-            const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
-            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><strong>${pPts} pts</strong> (FG: ${p.p2M+p.p3M}/${p.p2A+p.p3A})</td></tr>`;
-        });
-        document.getElementById('player-summary-table').innerHTML = tableHtml;
-    }
-
-    function copySummary() {
-        const s = getStats();
-        const matchup = document.getElementById('matchup-name').value;
-        const text = `🏀 ${matchup} (${new Date().toLocaleDateString()})\nTotal Points: ${s.tPts}\nFG%: ${s.fgPct}% (${s.tFGM}/${s.tFGA})\nFT: ${s.tFTM}/${s.tFTA}`;
-        navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
-    }
+    function save() { localStorage.setItem('bball_stats', JSON.stringify(players)); }
+    function saveMatchup() { localStorage.setItem('bball_matchup', document.getElementById('matchup-name').value); }
 
     function render() {
         const container = document.getElementById('player-list');
-        if (!container) return;
         container.innerHTML = '';
         players.forEach((p, i) => {
             const points = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
             container.innerHTML += `
                 <div class="card">
                     <div class="player-header">
-                        <input type="text" class="name-input" value="${p.name}" oninput="updateName(${i}, this.value)">
+                        <input type="text" class="name-input" value="${p.name}" oninput="players[${i}].name=this.value; save();">
                         <span class="points-badge">${points} PTS</span>
+                        <span class="foul-badge">${p.fouls} FLS</span>
                     </div>
                     <div class="stats-grid">
                         ${shotUI(i, 'FT', p.ftM, p.ftA, 'ft')}
                         ${shotUI(i, '2PT', p.p2M, p.p2A, '2p')}
                         ${shotUI(i, '3PT', p.p3M, p.p3A, '3p')}
+                        <div class="shot-box foul-box">FOULS: <b>${p.fouls}</b><button class="foul-btn" onclick="addFoul(${i})">${isSubtractMode ? '-1' : '+1'}</button></div>
                     </div>
                 </div>`;
         });
     }
 
     function shotUI(i, label, m, a, type) {
-        return `<div class="shot-box">${label}: <b>${m}/${a}</b><div class="btn-group"><button class="miss" onclick="addShot(${i},'${type}',false)">-</button><button class="make" onclick="addShot(${i},'${type}',true)">+</button></div></div>`;
+        return `<div class="shot-box">${label}: <b>${m}/${a}</b><div class="btn-group">
+            <button class="miss" onclick="addShot(${i},'${type}',false)">${isSubtractMode ? '-miss' : '-'}</button>
+            <button class="make" onclick="addShot(${i},'${type}',true)">${isSubtractMode ? '-make' : '+'}</button>
+        </div></div>`;
     }
+
+    function confirmReset() {
+        if(confirm("Reset all game stats?")) {
+            players.forEach(p => { p.ftM=0; p.ftA=0; p.p2M=0; p.p2A=0; p.p3M=0; p.p3A=0; p.fouls=0; });
+            save(); render();
+        }
+    }
+
+    function toggleView() {
+        isSummaryMode = !isSummaryMode;
+        document.getElementById('tracker-view').style.display = isSummaryMode ? 'none' : 'block';
+        document.getElementById('screenshot-view').style.display = isSummaryMode ? 'block' : 'none';
+        if (isSummaryMode) renderSummary();
+    }
+
+    function renderSummary() {
+        let tPts = 0, tFouls = 0;
+        let tableHtml = '';
+        players.forEach(p => {
+            const pPts = (p.ftM + (p.p2M * 2) + (p.p3M * 3));
+            tPts += pPts; tFouls += p fouls;
+            tableHtml += `<tr><td>${p.name}</td><td style="text-align:right"><b>${pPts} pts</b> | ${p.fouls} fls</td></tr>`;
+        });
+        document.getElementById('report-content').innerHTML = `<div class="report-item">Team Pts<br><strong>${tPts}</strong></div><div class="report-item">Team Fouls<br><strong>${tFouls}</strong></div>`;
+        document.getElementById('player-summary-table').innerHTML = tableHtml;
+    }
+
     render();
+    document.getElementById('matchup-name').value = localStorage.getItem('bball_matchup') || "Grafton vs X";
 </script>
 </body>
 </html>
